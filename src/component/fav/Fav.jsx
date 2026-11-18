@@ -1,66 +1,59 @@
-import React, { useContext } from 'react'
-import './fav.css'
-import { Button } from 'react-bootstrap'
-import { productContext } from '../contextAPI/Context'
-import axios from 'axios'
+import React, { useContext, useEffect } from 'react';
+import './fav.css';
+import { Button } from 'react-bootstrap';
+import { productContext } from '../contextAPI/Context';
+import axios from 'axios';
 import { API_URL } from '../../config';
 
 const Fav = () => {
+  const { favProList, token, getFav } = useContext(productContext);
 
-  const url = `${API_URL}/api/addfav`;
+  useEffect(() => {
+    getFav();
+  }, []);
 
-  const { favProList,setFavProductList, token } = useContext(productContext)
-
-  const getFav = async () => {
+  const removeFavItems = async (id) => {
     try {
-      if (token) {
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
-        
-        const response = await axios.get(`${API_URL}/api/addfav`, { headers });
-        setFavProductList(response.data);
-      }
+      await axios.delete(`${API_URL}/api/addfav/${id}`);
+      await getFav();
     } catch (error) {
-      console.log('No auth found');
+      console.error('Could not remove favourite:', error);
+      alert('Could not remove this item.');
     }
   };
 
-  const removeFavItems = async (id) => {
-    await axios.delete(`${url}/${id}`)
-      .then(res => getFav())
-  }
-
   return (
-    <div >
-      {favProList.length > 0 ?
-        <div className='fav'>
-          <h4>{favProList.length} fav items here </h4>
-          {
-            favProList.map(li => {
-              return <div className='items' key={li._id}>
-                <img src={li.image} className='img' alt="" />
+    <div>
+      {favProList.length > 0 ? (
+        <div className="fav">
+          <h4>{favProList.length} favourite items</h4>
 
+          {favProList.map((li) => (
+            <div className="items" key={li._id}>
+              <img src={li.image} className="img" alt={li.title} />
 
-                <p className="title">{li.title}</p>
-                <p className="company">{li.company}</p>
-                <p className="price text-dark">Rs:{li.price}</p>
+              <p className="title">{li.title}</p>
+              <p className="company">{li.company}</p>
+              <p className="price text-dark">Rs:{li.price}</p>
 
-                <div className="Fbtns">
-                  <Button variant='danger'onClick={ ()=>{ removeFavItems() }} > Remove From Favoutie </Button>
-                </div>
+              <div className="Fbtns">
+                <Button
+                  variant="danger"
+                  onClick={() => removeFavItems(li._id)}
+                >
+                  Remove from Favourites
+                </Button>
               </div>
-
-            })}
-
-        </div> :
-        <div className='no-items'>
-          <p>no fav items here</p>
-        </div>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="no-items">
+          <p>No favourite items here</p>
+        </div>
+      )}
     </div>
+  );
+};
 
-
-  )
-}
-
-export default Fav
+export default Fav;

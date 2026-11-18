@@ -1,110 +1,131 @@
-import axios from 'axios'
-import React, { useContext, useEffect, useState } from 'react'
-import './home.css'
-import { Button } from 'react-bootstrap'
-import { productContext } from '../contextAPI/Context'
+import axios from 'axios';
+import React, { useContext, useEffect, useState } from 'react';
+import './home.css';
+import { Button } from 'react-bootstrap';
+import { productContext } from '../contextAPI/Context';
 import { API_URL } from '../../config';
 
 const Product = () => {
+  const [products, setProducts] = useState([]);
 
-    const [products, setProducts] = useState([])
+  const { token, getFav } = useContext(productContext);
 
-    const { token } = useContext( productContext )
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/getproducts`);
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Could not fetch products:', error);
+    }
+  };
 
-    const fetchData = async () => {
-        await axios.get(`${API_URL}/api/getproducts`)
-            .then(res => setProducts(res.data))
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const addToFavourites = async (product) => {
+    if (!token) {
+      alert('Please login to add favourites.');
+      return;
     }
 
-    useEffect(() => {
-        fetchData()
-    }, [])
-
-    const getProduct = (image,title,company,price) =>{
-        const headers = {
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/addfav`,
+        {
+          image: product.image,
+          title: product.title,
+          company: product.company,
+          price: product.price,
+        },
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
-          };
-        console.log(image,title,company,price);
-        axios.post(`${API_URL}/api/addfav`, {
-            image,title,company,price
-          },{
-            headers
-          })
-          .then(function (response) {
-            console.log(response);
-            if(response.status === 202)
-            {
-                alert("already in fav list")
-            }
-            else {
-                alert("Item Added to fav")
-                getFav()
-            }
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
+          },
+        }
+      );
+
+      if (response.status === 202) {
+        alert('Already in your favourites!');
+      } else {
+        alert('Added to favourites!');
+        getFav();
+      }
+    } catch (error) {
+      console.error('Favourite error:', error.response?.data || error.message);
+      alert('Could not add to favourites. Please try again.');
     }
+  };
 
-    const addtoCart = (image,title,company,price) =>{
-        console.log(token);
-        
-        axios.post(`${API_URL}/api/addcart`, {
-            image,title,company,price
-          },{
-            headers : {
-                Authorization: `Bearer ${token}`,
-              }
-          })
-          .then(function (response) {
-            console.log(response);
-            if(response.status === 202)
-            {
-                alert("already in cart")
-            }
-            else {
-                alert("Item Added to cart")
-               
-            }
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
+  const addtoCart = async (image, title, company, price) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/addcart`,
+        { image, title, company, price },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 202) {
+        alert('Already in cart!');
+      } else {
+        alert('Item added to cart!');
+      }
+    } catch (error) {
+      console.error('Cart error:', error);
+      alert('Could not add item to cart.');
     }
+  };
 
+  return (
+    <div className="product">
+      <h3 className="text-center p-4">Products</h3>
 
-    return (
-        <div className='product'>
-            <h3 className='text-center p-4'>Products</h3>
+      <div className="pro-layout">
+        {products && products.length > 0 ? (
+          products.map((li) => (
+            <div className="cardz" key={li._id}>
+              <img src={li.image} className="image" alt={li.title} />
 
+              <p className="title">{li.title}</p>
 
-            <div className="pro-layout">
-                {
-                    products && products.length > 0 ?
+              <div className="comrice">
+                <p className="company">{li.company}</p>
+                <p className="price text-dark">Rs:{li.price}</p>
+              </div>
 
-                        products.map(li => {
-                            return <div className='cardz' key={li._id}>
-                                <img src={li.image} className='image' alt="" />
-                                <p className="title">{li.title}</p>
-                                <div className="comrice">
-                                <p className="company">{li.company}</p>
-                                <p className="price text-dark">Rs:{li.price}</p>
-                                </div>
-                                <div className="btns">
-                                    <Button variant='success px-4' onClick={()=>{ addtoCart(li.image,li.title,li.company,li.price) }}> Add to Cart </Button>
-                                </div>
-                            </div>
-                        })
+              <div className="btns">
+                <Button
+                  variant="outline-danger"
+                  className="me-2"
+                  onClick={() => addToFavourites(li)}
+                  title="Add to favourites"
+                >
+                  ♥
+                </Button>
 
-                        : <div>
-                            <p>no product found</p>
-                        </div>
-                }
+                <Button
+                  variant="success"
+                  onClick={() =>
+                    addtoCart(li.image, li.title, li.company, li.price)
+                  }
+                >
+                  Add to Cart
+                </Button>
+              </div>
             </div>
+          ))
+        ) : (
+          <div>
+            <p>No products found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-
-        </div>
-    )
-}
-
-export default Product
+export default Product;

@@ -7,54 +7,55 @@ export const productContext = createContext();
 const Context = ({ children }) => {
   const [favProList, setFavProductList] = useState([]);
   const [cartProduct, setCartProducts] = useState([]);
-  const [token,setToken] = useState('')
-
-  const getTokenFromLocalStorage = () => {
-    setToken(localStorage.getItem('token'))
-    return localStorage.getItem('token');
-  };
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
 
   const getFav = async () => {
-    try {
-      const token = getTokenFromLocalStorage();
-      if (token) {
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
+    if (!token) {
+      setFavProductList([]);
+      return;
+    }
 
-        const response = await axios.get(`${API_URL}/api/addfav`, { headers });
-        setFavProductList(response.data);
-      }
+    try {
+      const response = await axios.get(`${API_URL}/api/addfav`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setFavProductList(response.data);
     } catch (error) {
-      console.log('No auth found');
+      console.error('Could not fetch favourites:', error.response?.data || error.message);
     }
   };
 
   const getcart = async () => {
-    try {
-      const token = getTokenFromLocalStorage();
-      if (token) {
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
+    if (!token) {
+      setCartProducts([]);
+      return;
+    }
 
-        const response = await axios.get(`${API_URL}/api/addcart`, { headers });
-        setCartProducts(response.data);
-      }
+    try {
+      const response = await axios.get(`${API_URL}/api/addcart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setCartProducts(response.data);
     } catch (error) {
-      console.log('No auth found');
+      console.error('Could not fetch cart:', error.response?.data || error.message);
     }
   };
 
-
-    useEffect(() => {
-      getTokenFromLocalStorage()
-      if(token){
-        getFav()
+  useEffect(() => {
+    if (token) {
+      getFav();
       getcart();
-      }
-    }, [token]);
-
+    } else {
+      setFavProductList([]);
+      setCartProducts([]);
+    }
+  }, [token]);
 
   return (
     <productContext.Provider
@@ -65,7 +66,8 @@ const Context = ({ children }) => {
         setCartProducts,
         token,
         setToken,
-        getcart
+        getFav,
+        getcart,
       }}
     >
       {children}

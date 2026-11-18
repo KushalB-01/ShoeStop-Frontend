@@ -1,52 +1,92 @@
-import React,{useState} from 'react'
-import './signup.css'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import React, { useContext, useState } from 'react';
+import './signup.css';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { productContext } from '../contextAPI/Context';
 import { API_URL } from '../../config';
 
 const Signup = () => {
+  const navigate = useNavigate();
+  const { setToken } = useContext(productContext);
 
-  const navigate = useNavigate()
+  const [name, setName] = useState('');
+  const [email, setMail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [name, setName] = useState('')
-  const [email, setMail] = useState('')
-  const [password, setPassword] = useState('')
+  const submitHandler = async (e) => {
+    e.preventDefault();
+    setMessage('');
 
-  const url = `${API_URL}/signup`;
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setMessage('Please fill in all fields.');
+      return;
+    }
 
-  const changeNameHandler = (e) => {
-      setName(e.target.value)
-  }
-  const changeMailHandler = (e) => {
-      setMail(e.target.value)
-  }
-  const changePasswordHandler = (e) => {
-      setPassword(e.target.value)
-  }
+    try {
+      setLoading(true);
 
-  const submitHandler = () => {
-    // console.log(name, mail, password)
-    axios.post(url, { name, email, password })
-    .then(res => {
-        if (res.status === 200 || res.status === 201) {
-            localStorage.setItem('token', JSON.stringify(res.data.token));
-            console.log(res.data); // Log the response data if the request was successful.
-            navigate('/')
-        } else {
-            console.log('Request failed with status:', res.status);
-        }
-    })
-}
+      const response = await axios.post(`${API_URL}/signup`, {
+        name,
+        email,
+        password,
+      });
 
+      const receivedToken = response.data.token;
+
+      if (receivedToken) {
+        localStorage.setItem('token', receivedToken);
+        setToken(receivedToken);
+        navigate('/home');
+      } else {
+        setMessage('Registration succeeded, but no login token was received.');
+      }
+    } catch (error) {
+      console.error('Signup error:', error.response?.data || error.message);
+
+      setMessage(
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Signup failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className='signup'>
-      <input type="text" placeholder='username' onChange={(e) => { changeNameHandler(e) }}/>
-      <input type="text" placeholder='email' onChange={(e) => { changeMailHandler(e) }}/>
-      <input type="password" placeholder='password'  onChange={(e) => { changePasswordHandler(e) }} />
-      <button onClick={() => { submitHandler() }}>SignUp</button>
-    </div>
-  )
-}
+    <div className="signup">
+      <form onSubmit={submitHandler}>
+        <input
+          type="text"
+          placeholder="username"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
-export default Signup
+        <input
+          type="email"
+          placeholder="email"
+          value={email}
+          onChange={(e) => setMail(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? 'Signing Up...' : 'SignUp'}
+        </button>
+
+        {message && <p style={{ color: 'red', marginTop: '12px' }}>{message}</p>}
+      </form>
+    </div>
+  );
+};
+
+export default Signup;
